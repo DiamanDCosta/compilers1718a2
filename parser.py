@@ -22,23 +22,35 @@ class MyParser:
 		# define some pattern constructs
 		letter = plex.Range("AZaz")
 		digit = plex.Range("09")
+		identifier = letter + plex.Rep(letter|digit)
+	  	keyword = plex.Str('print')
+	   	NotOp = plex.Str('not')
+      		AndOrOp = plex.Str('and','or')
+	  	equals = plex.Str('=')
+	  	parenthesis = plex.Any('()')
+		space = plex.Rep1(plex.Any(' \n\t'))
+	  	boolFalse = plex.NoCase(plex.Str('false','f','0'))
+		boolTrue = plex.NoCase(plex.Str('true','t','1'))
 
-		string = plex.Rep1(letter | digit)
-		operator = plex.Any("!?()")		
-		space = plex.Any(" \t\n")
 
 		# the scanner lexicon - constructor argument is a list of (pattern,action ) tuples
 		lexicon = plex.Lexicon([
-			(operator,plex.TEXT),
+			(identifier,'IDENTIFIER'),
+			(keyword,plex.TEXT),
+			(NotOp,plex.TEXT),
+      			(AndOrOp,plex.TEXT),
+			(equals,plex.TEXT),
+			(parenthesis,plex.TEXT),
 			(space,plex.IGNORE),
-			(string, 'string')
+			(boolFalse,'FALSE'),
+     			(boolTrue,'TRUE')
 			])
 		
 		# create and store the scanner object
 		self.scanner = plex.Scanner(lexicon,fp)
 		
 		# get initial lookahead
-		self.la,self.val = self.next_token()
+		self.la, self.val = self.next_token()
 
 
 	def next_token(self):

@@ -85,53 +85,85 @@ class MyParser:
 		# call parsing logic
 		self.session()
 	
+	def stmtList(self):
+		if self.la == 'IDENTIFIER' or self.la == 'Print':
+			self.stmt()
+			self.stmtList()
+		elif self.la is None:
+			return
 			
-	def session(self):
-		""" Session  -> Facts Question | ( Session ) Session """
-		
-		if self.la=='!' or self.la=='?':
-			self.facts()
-			self.question()
-		elif self.la=='(':
-			self.match('(')
-			self.session()
-			self.match(')')
-			self.session()	
+	def stmt(self):
+		if self.la == 'IDENTIFIER':
+			self.match('IDENTIFIER')
+			self.match('=')
+			self.expr()
+		elif self.la == 'print':
+			self.match('print')
+			self.expr()
 		else:
-			raise ParseError("in session: !, ? or ( expected")
+			raise ParseError("Expected identifier or print keyword")
 			 	
-	
-	def facts(self):
-		""" Facts -> Fact Facts | ε """
-		
-		if self.la=='!':
-			self.fact()
-			self.facts()
-		elif self.la=='?':	# from FOLLOW set!
+	def expr(self):
+		if self.la == '(' or self.la == 'IDENTIFIER' or self.la == 'TRUE' or self.la == 'FALSE':
+			self.term()
+			self.termTail()
+		else:
+			ParseError('Expected (,identifier or t-f')
+			
+	def termTail(self):
+		if self.la == 'and' or self.la == 'or':
+			self.OP1()
+			self.term()
+			self.termTail()
+		elif self.la in ('identifier','print',None,')'):
 			return
 		else:
-			raise ParseError("in facts: ! or ? expected")
-	
-	
-	def fact(self):
-		""" Fact -> ! string """
-		
-		if self.la=='!':
-			self.match('!')
-			self.match('string')
+			raise ParseError('Expected \'and\' or \'or\'')
+			
+			
+	def term(self):
+		if self.la == '(' or self.la == 'IDENTIFIER' or self.la == 'TRUE' or self.la == 'FALSE' or self.la == 'not':
+			self.factor()
+			self.factorTail()
 		else:
-			raise ParseError("in fact: ! expected")
-			 	
-
-	def question(self):
-		""" Question -> ? string """
-		
-		if self.la=='?':
-			self.match('?')
-			self.match('string')
+			raise ParseError('Expected (,identifier or t-f')
+			
+			
+	def factor_tail(self):
+		if self.la == 'not':
+				self.NotOp()
+				self.Factor()
+				self.Factor_tail()
+		elif self.la =='and' or self.la=='or' or self.la =='print' or self.la =='IDENTIFIER' or self.la == ')' or self.la is None:
+				return
 		else:
-			raise ParseError("in question: ? expected")
-
+			raise ParseError('Expected not')
+	
+	def factor(self):
+		if self.la =='(':
+				self.match('(')
+				self.expr()
+				self.match(')')
+		elif self.la =='IDENTIFIER':
+				self.match('IDENTIFIER')
+		elif self.la == 'TRUE':
+				self.match('TRUE')
+		elif self.la == 'FALSE':
+				self.match('FALSE')
+		else:
+				raise ParseError('error expected for identifier, t-f')	
+	def AndOrOp(self):
+		if self.la == 'and':
+				self.match('and')
+		elif self.la == 'or':
+				self.match('or')
+		else:
+				raise ParseError('Expected and-or')
+	def multop(self):
+		if self.la == 'not':
+				self.match('not')
+		else:
+				raise ParseError('Expected not')
 		
 # the main part of prog
 
@@ -139,14 +171,9 @@ class MyParser:
 parser = MyParser()
 
 # open file for parsing
-with open("recursive-descent-parsing.txt","r") as fp:
+	with open("test.txt","r") as fp:
 
-	# parse file
-	try:
-		parser.parse(fp)
-	except plex.errors.PlexError:
-		_,lineno,charno = parser.position()	
-		print("Scanner Error: at line {} char {}".format(lineno,charno+1))
-	except ParseError as perr:
-		_,lineno,charno = parser.position()	
-print("Parser Error: {} at line {} char {}".format(perr,lineno,charno+1))
+		try:
+			parser.parse(fp)
+		except ParseError as perr:
+			print(perr)
